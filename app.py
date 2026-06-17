@@ -1,8 +1,23 @@
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, jsonify, render_template_string
 from collections import deque
+from datetime import datetime
+import random, threading, time
 
 app = Flask(__name__)
 data_store = deque(maxlen=20)
+
+def auto_generate():
+    while True:
+        data_store.append({
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+            "temperature": round(random.uniform(20, 40), 1),
+            "humidity": round(random.uniform(30, 90), 1),
+            "device": "sensor-01"
+        })
+        time.sleep(2)
+
+thread = threading.Thread(target=auto_generate, daemon=True)
+thread.start()
 
 HTML = """
 <!DOCTYPE html>
@@ -15,7 +30,6 @@ HTML = """
     .cards { display: flex; gap: 20px; margin: 20px 0; }
     .card { flex: 1; background: #f5f5f5; padding: 20px; border-radius: 10px; text-align: center; }
     .card h2 { font-size: 36px; margin: 10px 0; color: #333; }
-    canvas { margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -54,17 +68,13 @@ HTML = """
     setInterval(update, 2000);
     update();
   </script>
-</body></html>
+</body>
+</html>
 """
 
 @app.route('/')
 def dashboard():
     return render_template_string(HTML)
-
-@app.route('/data', methods=['POST'])
-def receive():
-    data_store.append(request.json)
-    return jsonify({"status": "ok"})
 
 @app.route('/api/data')
 def get_data():
